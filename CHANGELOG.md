@@ -22,6 +22,7 @@ Changes since the last release can be found at <https://github.com/emilk/egui/co
   * Software cursor with rotated movement direction, capture/release on window edges
   * Cursor icons adapt to rotation (e.g. `ResizeHorizontal` ↔ `ResizeVertical` at 90°/270°)
   * Configurable cursor scale via `Context::set_software_cursor_scale()`
+  * Cursor lock for kiosk / cabinet mode via `Context::set_cursor_lock(true)` — clamps the virtual cursor inside the window instead of releasing to the OS at edges
   * Works on all backends: glow, wgpu, and web (via `Context::set_viewport_rotation()`)
   * `ViewportRotation` enum added to `emath` with coordinate transform methods
 

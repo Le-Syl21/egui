@@ -263,6 +263,12 @@ pub struct ViewportState {
     /// When releasing capture, warp the OS cursor to this physical position.
     pub release_cursor_to: Option<Pos2>,
 
+    /// If true, the virtual cursor is clamped to the window bounds instead of
+    /// being released to the OS when it reaches an edge. Intended for kiosk /
+    /// cabinet / fullscreen use cases where the cursor must never leave the
+    /// window. Only has an effect when viewport rotation is active.
+    pub cursor_lock: bool,
+
 }
 
 /// What called [`Context::request_repaint`] or [`Context::request_discard`]?
@@ -488,7 +494,7 @@ impl ContextImpl {
                                     || new_y <= 0.0
                                     || new_y >= logical_size.y;
 
-                                if at_edge {
+                                if at_edge && !viewport.cursor_lock {
                                     // Release: warp OS cursor 3px outside the window edge
                                     let overshoot = 3.0;
                                     let edge_pos = Pos2::new(
@@ -505,6 +511,7 @@ impl ContextImpl {
                                     viewport.cursor_captured = false;
                                     viewport.virtual_cursor_pos = None;
                                 } else {
+                                    // Either away from edge, or locked: clamp inside bounds.
                                     let new_virtual_pos = Pos2::new(
                                         new_x.clamp(edge_margin, logical_size.x - edge_margin),
                                         new_y.clamp(edge_margin, logical_size.y - edge_margin),
@@ -2364,6 +2371,26 @@ impl Context {
         self.write(|ctx| {
             ctx.viewport().software_cursor_scale = scale;
         });
+    }
+
+    /// Lock the cursor inside the window (default: `false`).
+    ///
+    /// When enabled, the virtual cursor is clamped to the window bounds
+    /// instead of being released to the OS when it reaches an edge. Intended
+    /// for kiosk / cabinet / fullscreen use cases where the cursor must never
+    /// leave the window.
+    ///
+    /// Only has an effect when viewport rotation is active (the cursor lock
+    /// mechanism is part of the rotated-input machinery).
+    pub fn set_cursor_lock(&self, lock: bool) {
+        self.write(|ctx| {
+            ctx.viewport().cursor_lock = lock;
+        });
+    }
+
+    /// Returns whether the cursor is currently locked to the window.
+    pub fn cursor_lock(&self) -> bool {
+        self.write(|ctx| ctx.viewport().cursor_lock)
     }
 
     /// Allocate a texture.

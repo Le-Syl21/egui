@@ -7,6 +7,12 @@ This file is updated upon each release.
 Changes since the last release can be found at <https://github.com/emilk/egui/compare/latest...HEAD> or by running the `scripts/generate_changelog.py` script.
 
 
+## Unreleased
+
+### ⭐ Added
+* Add `App::transform_primitives` and `App::post_platform_output` hooks to inspect/transform tessellated primitives and platform output before they are dispatched.
+
+
 ## 0.34.2 - 2026-05-04
 * Document glow-only fields in `NativeOptions` [#8104](https://github.com/emilk/egui/pull/8104) by [@emilk](https://github.com/emilk)
 

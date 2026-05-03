@@ -996,16 +996,33 @@ impl GlutinWindowContext {
 
         log::debug!("trying to create glutin Display with config: {config_template_builder:?}");
 
+        // Build window attributes and resolve `viewport.builder.monitor` to a
+        // concrete `Fullscreen::Borderless(MonitorHandle)`. This step lives
+        // here (rather than inside create_winit_window_attributes) because
+        // the monitor index → MonitorHandle mapping requires ActiveEventLoop.
+        let mut initial_attrs =
+            egui_winit::create_winit_window_attributes(egui_ctx, viewport_builder.clone());
+        if let Some(idx) = viewport_builder.monitor {
+            let monitors: Vec<_> = event_loop.available_monitors().collect();
+            if let Some(monitor) = monitors.get(idx) {
+                initial_attrs = initial_attrs.with_fullscreen(Some(
+                    winit::window::Fullscreen::Borderless(Some(monitor.clone())),
+                ));
+            } else {
+                log::warn!(
+                    "ViewportBuilder::with_monitor({idx}): index out of range ({} monitors)",
+                    monitors.len()
+                );
+            }
+        }
+
         // Create GL display. This may probably create a window too on most platforms. Definitely on `MS windows`. Never on Android.
         let display_builder = glutin_winit::DisplayBuilder::new()
             // we might want to expose this option to users in the future. maybe using an env var or using native_options.
             //
             // The justification for FallbackEgl over PreferEgl is at https://github.com/emilk/egui/pull/2526#issuecomment-1400229576 .
             .with_preference(glutin_winit::ApiPreference::FallbackEgl)
-            .with_window_attributes(Some(egui_winit::create_winit_window_attributes(
-                egui_ctx,
-                viewport_builder.clone(),
-            )));
+            .with_window_attributes(Some(initial_attrs));
 
         let (window, gl_config) = {
             profiling::scope!("DisplayBuilder::build");
@@ -1169,10 +1186,27 @@ impl GlutinWindowContext {
             window
         } else {
             log::debug!("Creating a window for viewport {viewport_id:?}");
-            let window_attributes = egui_winit::create_winit_window_attributes(
+            let mut window_attributes = egui_winit::create_winit_window_attributes(
                 &self.egui_ctx,
                 viewport.builder.clone(),
             );
+            // Resolve viewport.builder.monitor → Fullscreen::Borderless(MonitorHandle)
+            // for secondary viewports too — same reasoning as the initial-window
+            // path above (ActiveEventLoop required, so deferred from
+            // create_winit_window_attributes).
+            if let Some(idx) = viewport.builder.monitor {
+                let monitors: Vec<_> = event_loop.available_monitors().collect();
+                if let Some(monitor) = monitors.get(idx) {
+                    window_attributes = window_attributes.with_fullscreen(Some(
+                        winit::window::Fullscreen::Borderless(Some(monitor.clone())),
+                    ));
+                } else {
+                    log::warn!(
+                        "ViewportBuilder::with_monitor({idx}): index out of range ({} monitors)",
+                        monitors.len()
+                    );
+                }
+            }
             if window_attributes.transparent()
                 && self.gl_config.supports_transparency() == Some(false)
             {

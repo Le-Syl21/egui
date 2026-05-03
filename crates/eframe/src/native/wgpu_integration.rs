@@ -938,7 +938,15 @@ impl WgpuWinitRunning<'_> {
             _ => {}
         }
 
-        let event_response = viewport_id
+        // Re-route keyboard events to ROOT viewport regardless of which
+        // window received them. See matching change in glow_integration.rs
+        // for the Wayland kiosk rationale.
+        let routed_viewport_id = match event {
+            winit::event::WindowEvent::KeyboardInput { .. }
+            | winit::event::WindowEvent::ModifiersChanged(_) => Some(egui::ViewportId::ROOT),
+            _ => viewport_id,
+        };
+        let event_response = routed_viewport_id
             .and_then(|viewport_id| {
                 let viewport = shared.viewports.get_mut(&viewport_id)?;
                 Some(integration.on_window_event(

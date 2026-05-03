@@ -888,7 +888,21 @@ impl GlowWinitRunning<'_> {
             consumed: false,
             repaint: false,
         };
-        if let Some(viewport_id) = viewport_id {
+        // Keyboard input (and modifier changes) on Wayland is delivered only
+        // to the surface that holds keyboard focus. In multi-viewport kiosk
+        // setups, secondary viewports (BG/DMD/Topper) can transiently steal
+        // focus despite `with_active(false)` — Mutter ignores that hint —
+        // and key presses are then dispatched to a viewport that has no
+        // useful UI. Re-route every KeyboardInput / ModifiersChanged to the
+        // ROOT viewport so the user's playfield input always reaches the
+        // launcher / wizard. Same rationale as the MouseMotion → ROOT
+        // routing change in `on_device_event`.
+        let routed_viewport_id = match event {
+            winit::event::WindowEvent::KeyboardInput { .. }
+            | winit::event::WindowEvent::ModifiersChanged(_) => Some(egui::ViewportId::ROOT),
+            _ => viewport_id,
+        };
+        if let Some(viewport_id) = routed_viewport_id {
             if let Some(viewport) = glutin.viewports.get_mut(&viewport_id) {
                 if let (Some(window), Some(egui_winit)) =
                     (&viewport.window, &mut viewport.egui_winit)

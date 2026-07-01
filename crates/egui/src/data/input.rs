@@ -596,6 +596,18 @@ pub enum Event {
 
         image: std::sync::Arc<ColorImage>,
     },
+
+    /// The reply of a fresh xdg-activation-v1 token requested with
+    /// [`crate::ViewportCommand::RequestActivationToken`] (Linux Wayland
+    /// only). Pass the string to a child process via the
+    /// `XDG_ACTIVATION_TOKEN` environment variable so the compositor
+    /// grants it focus without tripping focus-stealing prevention.
+    ///
+    /// Not emitted on X11 or non-Linux — the request is a no-op there.
+    ActivationTokenReceived {
+        viewport_id: crate::ViewportId,
+        token: String,
+    },
 }
 
 /// IME event.

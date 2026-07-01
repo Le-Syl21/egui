@@ -493,9 +493,22 @@ impl State {
                 consumed: false,
             },
 
+            // Wayland xdg-activation-v1 token delivered by winit in
+            // response to `ViewportCommand::RequestActivationToken`.
+            // Forward the raw string as an `Event::ActivationTokenReceived`
+            // so the app can pass it to child processes via
+            // `XDG_ACTIVATION_TOKEN`. On X11 winit synthesises a
+            // startup-notification ID here too — same event handles both.
+            WindowEvent::ActivationTokenDone { token, .. } => {
+                self.egui_input.events.push(egui::Event::ActivationTokenReceived {
+                    viewport_id: self.viewport_id,
+                    token: token.clone().into_raw(),
+                });
+                EventResponse { repaint: true, consumed: false }
+            }
+
             // Things we completely ignore:
-            WindowEvent::ActivationTokenDone { .. }
-            | WindowEvent::AxisMotion { .. }
+            WindowEvent::AxisMotion { .. }
             | WindowEvent::DoubleTapGesture { .. } => EventResponse {
                 repaint: false,
                 consumed: false,
@@ -1794,6 +1807,29 @@ fn process_viewport_command(
         }
         ViewportCommand::RequestPaste => {
             actions_requested.push(ActionRequested::Paste);
+        }
+        ViewportCommand::RequestActivationToken => {
+            #[cfg(all(
+                any(feature = "wayland", feature = "x11"),
+                any(target_os = "linux", target_os = "dragonfly", target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"),
+            ))]
+            {
+                use winit::platform::startup_notify::WindowExtStartupNotify as _;
+                if let Err(err) = window.request_activation_token() {
+                    log::debug!("RequestActivationToken not supported: {err}");
+                }
+            }
+            // On unsupported platforms the request is a silent no-op —
+            // clients still work, focus stealing prevention just doesn't
+            // apply (X11 desktops), or `ActivationTokenReceived` is never
+            // emitted.
+            #[cfg(not(all(
+                any(feature = "wayland", feature = "x11"),
+                any(target_os = "linux", target_os = "dragonfly", target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"),
+            )))]
+            {
+                let _ = window;
+            }
         }
     }
 }

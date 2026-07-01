@@ -1214,6 +1214,21 @@ pub enum ViewportCommand {
     ///
     /// This is equivalent to the system keyboard shortcut for paste (e.g. CTRL + V).
     RequestPaste,
+
+    /// Request a fresh xdg-activation-v1 token from the compositor (Linux
+    /// Wayland only; no-op on other platforms).
+    ///
+    /// The token is delivered asynchronously via
+    /// [`crate::Event::ActivationTokenReceived`]. Pass the received string
+    /// to a child process (usually via the `XDG_ACTIVATION_TOKEN`
+    /// environment variable) so the compositor grants it focus without
+    /// tripping focus-stealing prevention on mutter/kwin/sway.
+    ///
+    /// Requires winit's [`platform::startup_notify`] machinery, which is
+    /// automatically wired through by egui-winit's viewport handler.
+    ///
+    /// [`platform::startup_notify`]: https://docs.rs/winit/latest/winit/platform/startup_notify/index.html
+    RequestActivationToken,
 }
 
 impl ViewportCommand {

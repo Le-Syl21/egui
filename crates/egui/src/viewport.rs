@@ -707,7 +707,6 @@ impl ViewportBuilder {
         self
     }
 
-
     /// Update this `ViewportBuilder` with a delta,
     /// returning a list of commands and a bool indicating if the window needs to be recreated.
     #[must_use]

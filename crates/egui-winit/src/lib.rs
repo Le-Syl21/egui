@@ -500,19 +500,25 @@ impl State {
             // `XDG_ACTIVATION_TOKEN`. On X11 winit synthesises a
             // startup-notification ID here too — same event handles both.
             WindowEvent::ActivationTokenDone { token, .. } => {
-                self.egui_input.events.push(egui::Event::ActivationTokenReceived {
-                    viewport_id: self.viewport_id,
-                    token: token.clone().into_raw(),
-                });
-                EventResponse { repaint: true, consumed: false }
+                self.egui_input
+                    .events
+                    .push(egui::Event::ActivationTokenReceived {
+                        viewport_id: self.viewport_id,
+                        token: token.clone().into_raw(),
+                    });
+                EventResponse {
+                    repaint: true,
+                    consumed: false,
+                }
             }
 
             // Things we completely ignore:
-            WindowEvent::AxisMotion { .. }
-            | WindowEvent::DoubleTapGesture { .. } => EventResponse {
-                repaint: false,
-                consumed: false,
-            },
+            WindowEvent::AxisMotion { .. } | WindowEvent::DoubleTapGesture { .. } => {
+                EventResponse {
+                    repaint: false,
+                    consumed: false,
+                }
+            }
 
             WindowEvent::PinchGesture { delta, .. } => {
                 // Positive delta values indicate magnification (zooming in).
@@ -1811,7 +1817,13 @@ fn process_viewport_command(
         ViewportCommand::RequestActivationToken => {
             #[cfg(all(
                 any(feature = "wayland", feature = "x11"),
-                any(target_os = "linux", target_os = "dragonfly", target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"),
+                any(
+                    target_os = "linux",
+                    target_os = "dragonfly",
+                    target_os = "freebsd",
+                    target_os = "netbsd",
+                    target_os = "openbsd"
+                ),
             ))]
             {
                 use winit::platform::startup_notify::WindowExtStartupNotify as _;
@@ -1825,7 +1837,13 @@ fn process_viewport_command(
             // emitted.
             #[cfg(not(all(
                 any(feature = "wayland", feature = "x11"),
-                any(target_os = "linux", target_os = "dragonfly", target_os = "freebsd", target_os = "netbsd", target_os = "openbsd"),
+                any(
+                    target_os = "linux",
+                    target_os = "dragonfly",
+                    target_os = "freebsd",
+                    target_os = "netbsd",
+                    target_os = "openbsd"
+                ),
             )))]
             {
                 let _ = window;
